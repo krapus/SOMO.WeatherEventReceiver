@@ -18,14 +18,21 @@ namespace SOMO.WeatherEventReceiver
         public static async Task RunAsync([ServiceBusTrigger("weathereventmessages", Connection = "AzureBusConnectionstring")] string myQueueItem,
             ILogger log, ExecutionContext context)
         {
-            var configuration = GetConnectionString(context);
-            var database = GetMongoClient(@configuration["CosmoConnectionString"]).GetDatabase("somo");
+            try
+            {
+                var configuration = GetConnectionString(context);
+                var database = GetMongoClient(@configuration["CosmoConnectionString"]).GetDatabase("somo");
 
-            var collection = database.GetCollection<BsonDocument>("somo-weathers");
-            
-            await collection.InsertOneAsync(CreateDocument(JsonConvert.DeserializeObject<WeatherMessage>(myQueueItem)));
+                var collection = database.GetCollection<BsonDocument>("somo-weathers");
 
-            log.LogInformation($"C# ServiceBus queue trigger function processed message: {myQueueItem}");
+                await collection.InsertOneAsync(CreateDocument(JsonConvert.DeserializeObject<WeatherMessage>(myQueueItem)));
+
+                log.LogInformation($"C# ServiceBus queue trigger function processed message: {myQueueItem}");
+            }
+            catch (System.Exception ex)
+            {
+                log.LogInformation($"Something was wrong: {ex.Data}");
+            }
         }
 
         private static IConfigurationRoot GetConnectionString(ExecutionContext context)
